@@ -22,9 +22,9 @@ public class MainActivity extends AppCompatActivity {
 
         //-----------------------배경음악 재생
         player = MediaPlayer.create(this, R.raw.gamebgm);
-        player.start();
+        //player.start();
 
-        player.setLooping(true);
+        //player.setLooping(true);
 
 
     }
@@ -39,7 +39,7 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onResume() {
         // TODO Auto-generated method stub
-        player.start();
+        //player.start();
         super.onResume();
     }
 

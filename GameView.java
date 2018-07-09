@@ -40,7 +40,11 @@ public class GameView extends View {
     public int Combo = 0;               //콤보
     public int Combostack = 0;               //콤보stack
 
-    int counter = 0, Ani_num = 0;           //애니메이션 변수
+    int Ani_Num_Broken_Counter = 0, Ani_Num_Broken = 0;           //단어부서짐 애니메이션 변수
+    int Start_Count = 2;
+
+    Start_Count mStartCount;         //시작카운트 객체 선언
+    Word_Location word_location;      //단어위치 객체 선언
 
     ArrayList<Word_Native> mWordNative;              //고유어 ArrayList 선언
     ArrayList<Word_Loan> mWordLoan;                  //외래어 ArrayList 선언
@@ -49,23 +53,23 @@ public class GameView extends View {
     ArrayList<Word_Answer_Wrong> mWordWrong;         //틀림 ArrayList 선언
 
     int Native_Word_X, Native_Word_Y;           //고유어 X, Y값 저장변수
-
-
     int Loan_Word_X, Loan_Word_Y;           //외래어 X, Y값 저장변수
 
-    Word_Location word_location;
+    SoundPool sound = new SoundPool(2, AudioManager.STREAM_MUSIC, 0);           //효과음
+
+    int CorrectSound = sound.load(getContext(), R.raw.correct, 1);                     //맞을때 효과음
+    int WrongSound = sound.load(getContext(), R.raw.wrong, 1);                         //틀릴때 효과음
 
 
-    SoundPool sound = new SoundPool(2, AudioManager.STREAM_MUSIC, 0);
-
-    int CorrectSound = sound.load(getContext(), R.raw.correct , 1);
-    int WrongSound = sound.load(getContext(), R.raw.wrong , 1);
+    boolean StartCheck = false;
 
     public GameView(Context context) {
         super(context);
 
         Display display = ((WindowManager) context.getSystemService(Context.WINDOW_SERVICE))
                 .getDefaultDisplay();
+
+        mStartCount = new Start_Count(getContext()); // 시작카운트 객체 생성
 
         width = display.getWidth(); // View의 가로 폭
         height = display.getHeight(); // View의 세로 높이
@@ -89,6 +93,7 @@ public class GameView extends View {
 
         mHandler.sendEmptyMessageDelayed(0, 10); // Handler 호출
         Word_Time_Handler.sendEmptyMessageDelayed(0, Word_Create_Cycle);  //단어생성 핸들러
+        Start_Count_Handler.sendEmptyMessageDelayed(0, 1000);  //시작카운트 핸들러
     }
 
     //----------------------------------
@@ -126,6 +131,14 @@ public class GameView extends View {
         }
         canvas.drawText(Combo + "", (float) (width / 1.1), (float) (height - (character.getHeight() / 3.7)), paint);
 
+        //----------------------------------
+        // 시작카운트 그리기
+        //----------------------------------
+        paint.setAlpha(mStartCount.alpha);
+        if(Start_Count >= 0) {
+            canvas.drawBitmap(mStartCount.Count[Start_Count], (float)(mStartCount.nW_x * 1.2), mStartCount.nW_y / 2, paint);
+        }
+
 
         //----------------------------------
         // 고유어 그리기
@@ -157,11 +170,11 @@ public class GameView extends View {
         //----------------------------------
         // 단어부서짐 그리기
         //----------------------------------
-        counter++;
-        Ani_num = counter % 40 / 10;
+        Ani_Num_Broken_Counter++;
+        Ani_Num_Broken = Ani_Num_Broken_Counter % 40 / 10;
         for (Word_Broken tWord_Broken : mWordBroken) {                //단어그리기
             paint.setAlpha(tWord_Broken.alpha);
-            canvas.drawBitmap(tWord_Broken.Broken_Word[Ani_num], tWord_Broken.nW_x, tWord_Broken.nW_y, paint);
+            canvas.drawBitmap(tWord_Broken.Broken_Word[Ani_Num_Broken], tWord_Broken.nW_x, tWord_Broken.nW_y, paint);
         }
 
         //----------------------------------
@@ -169,7 +182,7 @@ public class GameView extends View {
         //----------------------------------
         for (Word_Answer_Correct tWord_Answer_Correct : mWordCorrect) {                //단어그리기
             paint.setAlpha(tWord_Answer_Correct.alpha);
-            canvas.drawBitmap(tWord_Answer_Correct.Correct , tWord_Answer_Correct.nW_x, tWord_Answer_Correct.nW_y, paint);
+            canvas.drawBitmap(tWord_Answer_Correct.Correct, tWord_Answer_Correct.nW_x, tWord_Answer_Correct.nW_y, paint);
         }
 
 
@@ -178,9 +191,8 @@ public class GameView extends View {
         //----------------------------------
         for (Word_Answer_Wrong tWord_Answer_Wrong : mWordWrong) {                //단어그리기
             paint.setAlpha(tWord_Answer_Wrong.alpha);
-            canvas.drawBitmap(tWord_Answer_Wrong.Wrong , tWord_Answer_Wrong.nW_x, tWord_Answer_Wrong.nW_y, paint);
+            canvas.drawBitmap(tWord_Answer_Wrong.Wrong, tWord_Answer_Wrong.nW_x, tWord_Answer_Wrong.nW_y, paint);
         }
-
         paint.setAlpha(255);
     }
 
@@ -189,18 +201,23 @@ public class GameView extends View {
     //----------------------------------
     private void Delete_Word() {
 
+        //시작카운트 삭제
+        if (mStartCount.dead == true) {
+            StartCheck = true;
+        }
+
         //고유어삭제
         for (int i = mWordNative.size() - 1; i >= 0; i--) {
             if (mWordNative.get(i).dead == true)
                 mWordNative.remove(i);
-                //word_location.Word_Overlap_False_Check(mWordNative.get(i).nW_x , mWordNative.get(i).nW_y);          //체크해제
+            //word_location.Word_Overlap_False_Check(mWordNative.get(i).nW_x , mWordNative.get(i).nW_y);          //체크해제
         }
 
         //외래어 삭제
         for (int i = mWordLoan.size() - 1; i >= 0; i--) {
             if (mWordLoan.get(i).dead == true)
                 mWordLoan.remove(i);
-                //word_location.Word_Overlap_False_Check(mWordLoan.get(i).nW_x , mWordLoan.get(i).nW_y);          //체크해제
+            //word_location.Word_Overlap_False_Check(mWordLoan.get(i).nW_x , mWordLoan.get(i).nW_y);          //체크해제
         }
 
         //단어부서짐 삭제
@@ -232,12 +249,12 @@ public class GameView extends View {
         for (int i = mWordNative.size() - 1; i >= 0; i--) {
             if (thisTime - mWordNative.get(i).lastTime_NativeWord >= Word_Broken_Cycle) {
                 //if (mWordNative.get(i).WordNative_MeltHole() == true) {
-                    mWordCorrect.add(new Word_Answer_Correct(mWordNative.get(i).nW_x, mWordNative.get(i).nW_y, getContext()));
-                    mWordNative.get(i).dead = true;
-                    SCORE += 10;
-                    Correct_Score++;
-                    Combostack++;
-               // }
+                mWordCorrect.add(new Word_Answer_Correct(mWordNative.get(i).nW_x, mWordNative.get(i).nW_y, getContext()));
+                mWordNative.get(i).dead = true;
+                SCORE += 10;
+                Correct_Score++;
+                Combostack++;
+                // }
             }
         }
 
@@ -245,12 +262,12 @@ public class GameView extends View {
         for (int i = mWordLoan.size() - 1; i >= 0; i--) {
             if (thisTime - mWordLoan.get(i).lastTime_LoanWord >= Word_Broken_Cycle) {
                 //if (mWordLoan.get(i).WordLoan_MeltHole() == true) {
-                    mWordWrong.add(new Word_Answer_Wrong(mWordLoan.get(i).nW_x , mWordLoan.get(i).nW_y , getContext()));
-                    mWordLoan.get(i).dead = true;
-                    LIFE--;
-                    Wrong_Score++;
-                    Combostack = 0;
-               // }
+                mWordWrong.add(new Word_Answer_Wrong(mWordLoan.get(i).nW_x, mWordLoan.get(i).nW_y, getContext()));
+                mWordLoan.get(i).dead = true;
+                LIFE--;
+                Wrong_Score++;
+                Combostack = 0;
+                // }
             }
         }
 
@@ -299,8 +316,8 @@ public class GameView extends View {
             if (Math.pow(tWord_Native.nW_x - x + 170, 2) + Math.pow(tWord_Native.nW_y - y + 100, 2) <= Math.pow(tWord_Native.m_rad - 50, 2)) {
                 mWordBroken.add(new Word_Broken(tWord_Native.nW_x, tWord_Native.nW_y, getContext()));
                 mWordWrong.add(new Word_Answer_Wrong(tWord_Native.nW_x, tWord_Native.nW_y, getContext()));
-                sound.play(WrongSound, 1.0F, 1.0F,  1,  0,  1.0F);
-                counter = 0;
+                sound.play(WrongSound, 1.0F, 1.0F, 1, 0, 1.0F);
+                Ani_Num_Broken_Counter = 0;
                 tWord_Native.dead = true;
                 LIFE--;
                 Wrong_Score++;
@@ -311,10 +328,10 @@ public class GameView extends View {
         //외래어 클릭체크
         for (Word_Loan tWord_Loan : mWordLoan) {
             if (Math.pow(tWord_Loan.nW_x - x + 170, 2) + Math.pow(tWord_Loan.nW_y - y + 100, 2) <= Math.pow(tWord_Loan.m_rad - 50, 2)) {
-                mWordBroken.add(new Word_Broken(tWord_Loan.nW_x , tWord_Loan.nW_y , getContext()));
-                mWordCorrect.add(new Word_Answer_Correct(tWord_Loan.nW_x  , tWord_Loan.nW_y , getContext()));
-                sound.play(CorrectSound, 1.0F, 1.0F,  1,  0,  1.0F);
-                counter = 0;
+                mWordBroken.add(new Word_Broken(tWord_Loan.nW_x, tWord_Loan.nW_y, getContext()));
+                mWordCorrect.add(new Word_Answer_Correct(tWord_Loan.nW_x, tWord_Loan.nW_y, getContext()));
+                sound.play(CorrectSound, 1.0F, 1.0F, 1, 0, 1.0F);
+                Ani_Num_Broken_Counter = 0;
                 tWord_Loan.dead = true;
                 SCORE += 10;
                 Correct_Score++;
@@ -334,12 +351,26 @@ public class GameView extends View {
     Handler Word_Time_Handler = new Handler() {
         public void handleMessage(Message msg) {
             int Ran = (int) (Math.random() * 2);          //고유어 , 외래어 랜덤호출
-            if (Ran == 0) {
-                mWordNative.add(new Word_Native(Native_Word_X, Native_Word_Y, getContext()));
-            } else {
-                mWordLoan.add(new Word_Loan(Loan_Word_X, Loan_Word_Y, getContext()));
+            if(StartCheck) {
+                if (Ran == 0) {
+                    mWordNative.add(new Word_Native(Native_Word_X, Native_Word_Y, getContext()));
+                } else {
+                    mWordLoan.add(new Word_Loan(Loan_Word_X, Loan_Word_Y, getContext()));
+                }
             }
             Word_Time_Handler.sendEmptyMessageDelayed(0, Word_Create_Cycle);
+        }
+    }; // Handler
+
+    Handler Start_Count_Handler = new Handler() {
+        public void handleMessage(Message msg) {
+
+            if (Start_Count < 0) {
+                mStartCount.dead = true;
+            } else {
+                Start_Count--;
+            }
+            Start_Count_Handler.sendEmptyMessageDelayed(0, 1000);
         }
     }; // Handler
 }

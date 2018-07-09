@@ -24,57 +24,73 @@ import java.util.TimerTask;
 
 public class GameView extends View {
 
-    int width, height; // View의 크기
-    Bitmap imgBack; // 배경
-    Bitmap ui; // 게임 하단 UI
-    Bitmap character; // 게임 하단 캐릭터
 
-    //public int Word_Cycle = (int)(Math.random() * 1000) + 500;                //단어생성주기
-    public int Word_Create_Cycle = 500;                //단어생성주기
-    public int Word_Broken_Cycle = 1500;       //단어삭제주기
+    private int width, height; // View의 크기
+    private Bitmap imgBack; // 배경
+    private Bitmap ui; // 게임 하단 UI
+    private Bitmap character; // 게임 하단 캐릭터
 
-    public int LIFE = 10;               //목숨
-    public int SCORE = 0;               //점수
-    public int Correct_Score = 0;      //맞은 갯수
-    public int Wrong_Score = 0;        //틀린 갯수
-    public int Combo = 0;               //콤보
-    public int Combostack = 0;               //콤보stack
+    //private int Word_Cycle = (int)(Math.random() * 1000) + 500;                //단어생성주기
+    private int Word_Create_Cycle = 500;                //단어생성주기
+    private int Word_Broken_Cycle = 1500;       //단어삭제주기
 
-    int Ani_Num_Broken_Counter = 0, Ani_Num_Broken = 0;           //단어부서짐 애니메이션 변수
-    int Start_Count = 2;
+    private int LIFE = 10;               //목숨
+    private int SCORE = 0;               //점수
+    private int Correct_Score = 0;      //맞은 갯수
+    private int Wrong_Score = 0;        //틀린 갯수
+    private int Combo = 0;               //콤보
+    private int Combostack = 0;               //콤보stack
 
-    Start_Count mStartCount;         //시작카운트 객체 선언
-    Word_Location word_location;      //단어위치 객체 선언
-
-    ArrayList<Word_Native> mWordNative;              //고유어 ArrayList 선언
-    ArrayList<Word_Loan> mWordLoan;                  //외래어 ArrayList 선언
-    ArrayList<Word_Broken> mWordBroken;              //단어부서짐 ArrayList 선언
-    ArrayList<Word_Answer_Correct> mWordCorrect;         //맞음 ArrayList 선언
-    ArrayList<Word_Answer_Wrong> mWordWrong;         //틀림 ArrayList 선언
-
-    int Native_Word_X, Native_Word_Y;           //고유어 X, Y값 저장변수
-    int Loan_Word_X, Loan_Word_Y;           //외래어 X, Y값 저장변수
-
-    SoundPool sound = new SoundPool(2, AudioManager.STREAM_MUSIC, 0);           //효과음
-
-    int CorrectSound = sound.load(getContext(), R.raw.correct, 1);                     //맞을때 효과음
-    int WrongSound = sound.load(getContext(), R.raw.wrong, 1);                         //틀릴때 효과음
+    private int Ani_Num_Broken_Counter = 0, Ani_Num_Broken = 0;           //단어부서짐 애니메이션 변수
 
 
-    boolean StartCheck = false;
+    private Start_Count mStartCount;                 //시작카운트 객체 선언
+    private Mission mMission;                         //미션 객체 선언
 
+    private Word_Location word_location;             //단어위치 객체 선언
+
+    private ArrayList<Word_Native> mWordNative;              //고유어 ArrayList 선언
+    private ArrayList<Word_Loan> mWordLoan;                  //외래어 ArrayList 선언
+    private ArrayList<Word_Broken> mWordBroken;              //단어부서짐 ArrayList 선언
+    private ArrayList<Word_Answer_Correct> mWordCorrect;         //맞음 ArrayList 선언
+    private ArrayList<Word_Answer_Wrong> mWordWrong;         //틀림 ArrayList 선언
+
+    private int Native_Word_X, Native_Word_Y;           //고유어 X, Y값 저장변수
+    private int Loan_Word_X, Loan_Word_Y;           //외래어 X, Y값 저장변수
+
+    private SoundPool sound = new SoundPool(2, AudioManager.STREAM_MUSIC, 0);           //효과음
+
+    private int CorrectSound = sound.load(getContext(), R.raw.correct, 1);                     //맞을때 효과음
+    private int WrongSound = sound.load(getContext(), R.raw.wrong, 1);                         //틀릴때 효과음
+
+    private boolean StartCheck = false;
+
+    private int sMission_x = 700 , sMission_y = 700;
+
+    private int angle = 0;                  //미션 앵글 수치
+
+    private int Mission_Count = 0;                  //미션 초기 배열값
+    private int Start_Count = 2;                    //카운트 초기 배열값
+
+    private boolean Mission_Check = true;
+    private boolean Mission_Wait = true;
+
+    //----------------------------------
+    // 생성자
+    //----------------------------------
     public GameView(Context context) {
         super(context);
 
         Display display = ((WindowManager) context.getSystemService(Context.WINDOW_SERVICE))
                 .getDefaultDisplay();
 
-        mStartCount = new Start_Count(getContext()); // 시작카운트 객체 생성
+        mStartCount = new Start_Count(getContext());           // 시작카운트 객체 생성
+        mMission = new Mission(getContext());                  // 미션 객체 생성
+        word_location = new Word_Location(getContext());      // 단어위치 객체 생성
 
         width = display.getWidth(); // View의 가로 폭
         height = display.getHeight(); // View의 세로 높이
 
-        word_location = new Word_Location(getContext());
 
         imgBack = BitmapFactory.decodeResource(context.getResources(), R.drawable.game_back);
         imgBack = Bitmap.createScaledBitmap(imgBack, width, height, true);
@@ -94,6 +110,8 @@ public class GameView extends View {
         mHandler.sendEmptyMessageDelayed(0, 10); // Handler 호출
         Word_Time_Handler.sendEmptyMessageDelayed(0, Word_Create_Cycle);  //단어생성 핸들러
         Start_Count_Handler.sendEmptyMessageDelayed(0, 1000);  //시작카운트 핸들러
+
+
     }
 
     //----------------------------------
@@ -132,11 +150,50 @@ public class GameView extends View {
         canvas.drawText(Combo + "", (float) (width / 1.1), (float) (height - (character.getHeight() / 3.7)), paint);
 
         //----------------------------------
+        // 미션 그리기
+        //----------------------------------
+        paint.setAlpha(mMission.alpha);
+
+
+
+        if(Mission_Wait) {
+            if(mMission.alpha < 255){
+                mMission.alpha += 3;
+            } else{
+                Mission_Wait_Handler.sendEmptyMessageDelayed(0, 1500);  //미션 핸들러
+            }
+            paint.setAlpha(mMission.alpha);
+            canvas.drawBitmap(mMission.Mission[Mission_Count], width / 2 - (mMission.Mission[Mission_Count].getWidth() / 2), height / 2 - (mMission.Mission[Mission_Count].getHeight() / 2), paint);
+        }else {
+            if (Mission_Check) {
+
+                if (angle <= 1070) {
+                    angle += 10;
+                    if (sMission_x > 7 && sMission_y > 7) {
+                        sMission_x -= 6;
+                        sMission_y -= 6;
+                    }
+
+                    mMission.Mission[0] = Bitmap.createScaledBitmap(mMission.Mission[0], sMission_x, sMission_y, true);       //크기조정
+
+
+                    canvas.rotate(angle, getWidth() / 2, getHeight() / 2);
+                    canvas.drawBitmap(mMission.Mission[Mission_Count], width / 2 - (mMission.Mission[Mission_Count].getWidth() / 2), height / 2 - (mMission.Mission[Mission_Count].getHeight() / 2), paint);
+                } else {
+                    Mission_Handler.sendEmptyMessageDelayed(0, 900);  //미션 핸들러
+                }
+
+            }
+        }
+
+
+        //----------------------------------
         // 시작카운트 그리기
         //----------------------------------
-        paint.setAlpha(mStartCount.alpha);
-        if(Start_Count >= 0) {
-            canvas.drawBitmap(mStartCount.Count[Start_Count], (float)(mStartCount.nW_x * 1.2), mStartCount.nW_y / 2, paint);
+        if (Start_Count >= 0 && !Mission_Check)
+        {
+            paint.setAlpha(mStartCount.alpha);
+            canvas.drawBitmap(mStartCount.Count[Start_Count], width / 2 - (mStartCount.Count[Start_Count].getWidth() / 2), height / 2 - (mStartCount.Count[Start_Count].getHeight() / 2), paint);
         }
 
 
@@ -183,6 +240,7 @@ public class GameView extends View {
         for (Word_Answer_Correct tWord_Answer_Correct : mWordCorrect) {                //단어그리기
             paint.setAlpha(tWord_Answer_Correct.alpha);
             canvas.drawBitmap(tWord_Answer_Correct.Correct, tWord_Answer_Correct.nW_x, tWord_Answer_Correct.nW_y, paint);
+
         }
 
 
@@ -351,7 +409,7 @@ public class GameView extends View {
     Handler Word_Time_Handler = new Handler() {
         public void handleMessage(Message msg) {
             int Ran = (int) (Math.random() * 2);          //고유어 , 외래어 랜덤호출
-            if(StartCheck) {
+            if (StartCheck) {
                 if (Ran == 0) {
                     mWordNative.add(new Word_Native(Native_Word_X, Native_Word_Y, getContext()));
                 } else {
@@ -362,15 +420,35 @@ public class GameView extends View {
         }
     }; // Handler
 
+
+    //시작 카운트 핸들러
     Handler Start_Count_Handler = new Handler() {
         public void handleMessage(Message msg) {
 
-            if (Start_Count < 0) {
-                mStartCount.dead = true;
-            } else {
-                Start_Count--;
+            if(!Mission_Check) {
+                if (Start_Count < 0) {
+                    mStartCount.dead = true;
+                } else {
+                    Start_Count--;
+                }
             }
             Start_Count_Handler.sendEmptyMessageDelayed(0, 1000);
+        }
+    }; // Handler
+
+    //시작 카운트 핸들러
+    Handler Mission_Handler = new Handler() {
+        public void handleMessage(Message msg) {
+                Mission_Check = false;
+                Mission_Handler.sendEmptyMessageDelayed(0, 900);
+        }
+    }; // Handler
+
+    //시작 카운트 핸들러
+    Handler Mission_Wait_Handler = new Handler() {
+        public void handleMessage(Message msg) {
+            Mission_Wait = false;
+            Mission_Wait_Handler.sendEmptyMessageDelayed(0, 1500);
         }
     }; // Handler
 }

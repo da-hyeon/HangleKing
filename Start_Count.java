@@ -36,10 +36,12 @@ public class Start_Count {
         Count[1] = BitmapFactory.decodeResource(context.getResources(), R.drawable.count_2 );
         Count[2] = BitmapFactory.decodeResource(context.getResources(), R.drawable.count_3 );
 
-        for(int i = 0; i < Count.length; i++) {
-            Count[i] = Bitmap.createScaledBitmap(Count[i], sW_x, sW_y, true);       //크기조정
-        }
+//        for(int i = 0; i < Count.length; i++) {
+//            Count[i] = Bitmap.createScaledBitmap(Count[i], sW_x, sW_y, true);       //크기조정
+//        }
 
         lastTime_StartTime = System.currentTimeMillis (); // 현재 시각
     }
+
+
 }
